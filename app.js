@@ -13,7 +13,7 @@ var app = express();
 const options = require('./knexfile.js');
 const knex = require('knex')(options);
 const swaggerUI = require('swagger-ui-express');
-const swaggerDocument = require('./docs/swagger.json')
+const swaggerDocument = require('./docs/swaggertest.json')
 
 
 // view engine setup
