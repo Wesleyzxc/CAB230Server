@@ -64,6 +64,37 @@ router.get("/api/ages", function (req, res, next) {
 
 });
 
+router.get("/api/years", function (req, res, next) {
+  req.db.from("offences").select("year").distinct()
+    .then((rows) => {
+      let reducedArray = []
+      rows.map((row => {
+        reducedArray.push(row.year);
+      }))
+      res.json({ "Error": false, "Message": "Success", "Year": reducedArray })
+    })
+    .catch((er) => {
+      console.log(err);
+      res.json({ "Error": true, "Message": "Error executing MySQL query" })
+    })
+
+});
+
+router.get("/api/genders", function (req, res, next) {
+  req.db.from("offences").select("gender").distinct()
+    .then((rows) => {
+      let reducedArray = []
+      rows.map((row => {
+        reducedArray.push(row.gender);
+      }))
+      res.json({ "Error": false, "Message": "Success", "Gender": reducedArray })
+    })
+    .catch((er) => {
+      console.log(err);
+      res.json({ "Error": true, "Message": "Error executing MySQL query" })
+    })
+
+});
 
 
 
