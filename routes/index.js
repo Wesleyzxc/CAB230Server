@@ -47,10 +47,15 @@ router.get("/api/areas", function (req, res, next) {
     })
 });
 
-router.get("/api/areas/:LGA", function (req, res) {
-  req.db.from("city").select("*").where("CountryCode", "=", req.params.CountryCode)
+
+router.get("/api/ages", function (req, res, next) {
+  req.db.from("offences").select("age").distinct()
     .then((rows) => {
-      res.json({ "Error": false, "Message": "Success", "Cities": rows })
+      let reducedArray = []
+      rows.map((row => {
+        reducedArray.push(row.age);
+      }))
+      res.json({ "Error": false, "Message": "Success", "Age": reducedArray })
     })
     .catch((er) => {
       console.log(err);
@@ -59,20 +64,7 @@ router.get("/api/areas/:LGA", function (req, res) {
 
 });
 
-router.get("/api/areas/:LGA", function (req, res) {
-  var query = "SELECT * FROM ?? WHERE ??=?";
-  var table = ["city", "LGA", req.params.LGA];
-  query = mysql.format(query, table);
-  req.db.query(query, function (err, rows) {
-    if (err) {
-      res.json({
-        "Error": true, "Message": "Error executing MySQL query"
-      });
-    } else {
-      res.json({ "Error": false, "Message": "Success", "Cities": rows });
-    }
-  });
-});
+
 
 
 
