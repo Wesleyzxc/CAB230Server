@@ -12,12 +12,30 @@ router.get('/search', function (req, res, next) {
   res.render('index', { title: 'Lots of route available' });
 });
 
-router.get('/register', function (req, res, next) {
-  res.render('index', { title: 'Lots of route available' });
+router.get('/api/login', function (req, res, next) {
+  req.db.from('users').select("email", "id").where({ email: req.body.email }, { password: req.body.password }).then((data) => {
+    res.json({ "Error": false, "Message": "Success", "Email": data[0].email, "Token": data[0].id })
+  })
+    .catch((err) => {
+      console.log("Your account does not exist.");
+      res.json({ "Error": true, "Message": "Your user does not exist." })
+
+    });
+
 });
 
-router.get('/login', function (req, res, next) {
-  res.render('index', { title: 'Lots of route available' });
+router.post('/api/register', function (req, res, next) {
+  // res.render('index', { title: 'Lots of route available' });
+  // body is  x-www-form-urlencoded
+  req.db('users').insert({ email: req.body.email, password: req.body.password }).then((data) => {
+    console.log(data) // just the id
+  })
+    .catch((err) => {
+      console.log(err);
+    })
+
+  res.json(req.body);
+
 });
 
 router.get("/api/offences", function (req, res) {
