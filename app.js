@@ -3,7 +3,10 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-
+// trying auth
+var jwt = require('jsonwebtoken');
+var bcrypt = require('bcryptjs');
+var config = require('./config');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -36,8 +39,12 @@ logger.token('res', (req, res) => {
 
 app.use((req, res, next) => {
   req.db = knex;
+  req.bc = bcrypt;
+  req.cf = config;
+  req.jwt = jwt;
   next()
 })
+
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
