@@ -4,81 +4,80 @@ const mysql = require("mysql");
 const router = express.Router();
 
 /* GET home page. */
-router.get("/", function(req, res, next) {
+router.get("/", function (req, res, next) {
   res.render("index", { title: "The World Database API" });
 });
 
-router.post("/search", function(req, res, next) {
+router.post("/api/search", function (req, res, next) {
   // res.render('index', { title: 'Lots of route available' });
-  // let token = req.headers['x-access-token'];
-  // if (!token) return res.status(401).send({ auth: false, message: 'No token provided.' });
-  // req.jwt.verify(token, req.cf.secret, function(err, decoded) {
-  //   if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
-  //   res.status(200).send(decoded);
-  // });
+  let token = req.headers['x-access-token'];
   let results = [];
-  req.db
-    .from("offences")
-    .select("area", "sum(${req.body.offence}")
-    .groupBy("area")
-    .then(rows => {
-      results.push(rows);
-    });
-});
 
-router.post("/api/login", function(req, res, next) {
-  let returnToken = "";
-  function CheckLogin(setToken) {
-    req.db
-      .from("users")
-      .select("password")
-      .where({ email: req.body.email })
-      .then(data => {
-        req.bc.compare(req.body.password, data[0].password, function(err, res) {
-          token = req.jwt.sign({ id: req.body.email }, req.cf.secret, {
-            expiresIn: 86400
-          }); // expires in 24 hours
-          // console.log(token);
-          setToken = token;
+  if (!token) return res.status(401).send({ auth: false, error: 'Looks like the authorization header is missing!' });
+  req.jwt.verify(token, req.cf.secret, function (err, decoded) {
+    if (err) {
+      return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
+    }
+    else {
+      req.db
+        .from("offences")
+        .select("area")
+        .sum(`${req.body.offence} as total`)
+        .groupBy("area")
+        .then(rows => {
+          rows.map(row => {
+            results.push({ "LGA": row.area, "total": row.total });
+            // console.log(results);
+          })
+          res.status(200).json({ "query": req.body.offence, "results": { results } });
+        })
+        .catch(err => {
+          return res.json({ "message": "something is wrong with your parameters!" })
         });
-      });
-  }
+    }
+  })
 
-  CheckLogin(returnToken);
-  console.log(returnToken);
-  res.status(200).send({"token": returnToken});
 });
 
-// console.log(token);
-// res.json({"token": token})
-// res.status(200).send({ "token": token });
+router.post("/api/login", function (req, res, next) {
+  req.db
+    .from("users")
+    .select("password")
+    .where({ email: req.body.email })
+    .then(data => {
+      if (data) { return data[0].password };
+      throw new Error(data.error);
+    })
+    .then(response => {
+      let token = req.bc.compare(req.body.password, response)
+        .then(response => {
+          // true
+          if (response) {
+            let token = req.jwt.sign({ id: req.body.email }, req.cf.secret, {
+              expiresIn: 86400 // expires in 24 hours
+            });
+            return token;
+          }
+          else { console.log("Your credentials are wrong") }
+        })
+      return token;
+    }).then(result => {
+      res.status(200).send({ "token": result, "expiresIn": 86400 });
+    })
 
-// res.send(token);
+    .catch(function (err) {
+      // res.status(401).send({ "message": "Your credentials are wrong" })
+    })
 
-//   req.bc.compare(req.body.password, hashedPassword, function(err, res) {
-//     // res == true
-//     console.log(res);
-// })
-//   req.db.from('users').select("email", "id").where({ email: req.body.email }).where({password: req.body.password}).then((data) => {
-//     console.log(data);
-//     let token = req.jwt.sign({ id: req.body.email }, req.cf.secret, {
-//       expiresIn: 86400 // expires in 24 hours
-//     });
+});
 
-//     res.json({ "Error": false, "Message": "Success", "Email": data[0].email, "Token": token });
+// res.status(200).send({ "token": returnToken });
 
-//   })
-//     .catch((err) => {
-//       console.log("Your account does not exist.");
-//       res.status(401);
-//       res.json({ "message": "invalid login." });
-//     });
-
-router.post("/api/register", function(req, res, next) {
+router.post("/api/register", function (req, res, next) {
   // res.render('index', { title: 'Lots of route available' });
   // body is  x-www-form-urlencoded
   let hashedPassword = req.bc.hashSync(req.body.password, 8);
-  // console.log(hashedPassword);
+  console.log(hashedPassword);
   // let second = req.bc.hashSync("demouserpassword", 8);
   // console.log(second);
 
@@ -86,7 +85,7 @@ router.post("/api/register", function(req, res, next) {
     .db("users")
     .insert({ email: req.body.email, password: hashedPassword })
     .then(data => {
-      console.log(data); // just the id
+      // console.log(data); // just the id
       res.status(200).send({ message: "you successfully registered" });
     })
     .catch(err => {
@@ -96,7 +95,7 @@ router.post("/api/register", function(req, res, next) {
     });
 });
 
-router.get("/api/offences", function(req, res) {
+router.get("/api/offences", function (req, res) {
   req.db
     .from("offence_columns")
     .select("pretty as offence")
@@ -108,12 +107,12 @@ router.get("/api/offences", function(req, res) {
       res.json({ Offences: reducedArray });
     })
     .catch(err => {
-      console.log(err);
+      // console.log(err);
       res.json({ Error: true, Message: "Error in MySQL query" });
     });
 });
 
-router.get("/api/areas", function(req, res, next) {
+router.get("/api/areas", function (req, res, next) {
   req.db
     .from("areas")
     .select("*")
@@ -125,12 +124,12 @@ router.get("/api/areas", function(req, res, next) {
       });
     })
     .catch(err => {
-      console.log(err);
+      // console.log(err);
       res.json({ Error: true, Message: "Error in MySQL query" });
     });
 });
 
-router.get("/api/ages", function(req, res, next) {
+router.get("/api/ages", function (req, res, next) {
   req.db
     .from("offences")
     .select("age")
@@ -143,12 +142,12 @@ router.get("/api/ages", function(req, res, next) {
       res.json({ Error: false, Message: "Success", Age: reducedArray });
     })
     .catch(er => {
-      console.log(err);
+      // console.log(err);
       res.json({ Error: true, Message: "Error executing MySQL query" });
     });
 });
 
-router.get("/api/years", function(req, res, next) {
+router.get("/api/years", function (req, res, next) {
   req.db
     .from("offences")
     .select("year")
@@ -161,12 +160,12 @@ router.get("/api/years", function(req, res, next) {
       res.json({ Error: false, Message: "Success", Year: reducedArray });
     })
     .catch(er => {
-      console.log(err);
+      // console.log(err);
       res.json({ Error: true, Message: "Error executing MySQL query" });
     });
 });
 
-router.get("/api/genders", function(req, res, next) {
+router.get("/api/genders", function (req, res, next) {
   req.db
     .from("offences")
     .select("gender")
@@ -179,7 +178,7 @@ router.get("/api/genders", function(req, res, next) {
       res.json({ Error: false, Message: "Success", Gender: reducedArray });
     })
     .catch(er => {
-      console.log(err);
+      // console.log(err);
       res.json({ Error: true, Message: "Error executing MySQL query" });
     });
 });
