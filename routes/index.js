@@ -12,7 +12,7 @@ router.get('/search', function (req, res, next) {
   res.render('index', { title: 'Lots of route available' });
 });
 
-router.get('/api/login', function (req, res, next) {
+router.post('/api/login', function (req, res, next) {
   req.db.from('users').select("email", "id").where({ email: req.body.email }, { password: req.body.password }).then((data) => {
     res.json({ "Error": false, "Message": "Success", "Email": data[0].email, "Token": data[0].id })
   })
