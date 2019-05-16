@@ -5,7 +5,7 @@ const router = express.Router();
 
 /* GET home page. */
 router.get("/", function (req, res, next) {
-  res.render("/", { title: "CAB230 Server Side Crime Statistics DB" });
+  res.render("index", { title: "CAB230 Server Side Crime Statistics DB" });
 });
 
 router.post("/api/search", function (req, res, next) {
