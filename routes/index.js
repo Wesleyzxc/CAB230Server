@@ -70,19 +70,21 @@ router.post("/api/login", function (req, res, next) {
           // true
           if (response) {
             let token = req.jwt.sign({ id: req.body.email }, req.cf.secret, {
-              expiresIn: 86400 // expires in 24 hours
+              expiresIn: 3600 // expires in 1 hour
             });
             return token;
           }
-          else { console.log("Your credentials are wrong") }
+          else { throw new Error(response.error); }
         })
       return token;
     }).then(result => {
-      res.status(200).send({ "token": result, "expiresIn": 86400 });
+      if (result) {
+        res.status(200).send({ "token": result, "expiresIn": 86400 });
+      }
     })
-
     .catch(function (err) {
-      // res.status(401).send({ "message": "Your credentials are wrong" })
+      res.status(401).send({ "message": "invalid login." });
+
     })
 
 });

@@ -9,8 +9,6 @@ var bcrypt = require('bcryptjs');
 var config = require('./config');
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-
 var app = express();
 
 const options = require('./knexfile.js');
@@ -18,6 +16,7 @@ const knex = require('knex')(options);
 const swaggerUI = require('swagger-ui-express');
 const swaggerDocument = require('./docs/crimeswagger.json')
 const helmet = require('helmet');
+const fs = require('fs');
 
 app.use(logger('common'));
 
@@ -32,6 +31,13 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// logs each api request
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, 'logs', 'access.log'),
+  { flags: 'a' }
+);
+app.use(logger('combined', { stream: accessLogStream }))
+
 app.use((req, res, next) => {
   req.db = knex;
   req.bc = bcrypt;
@@ -42,7 +48,6 @@ app.use((req, res, next) => {
 
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/docs', swaggerUI.serve, swaggerUI.setup(swaggerDocument))
 
 // catch 404 and forward to error handler
