@@ -8,18 +8,38 @@ var app = require('../app');
 var debug = require('debug')('server-side:server');
 var http = require('http');
 
+const fs = require('fs');
+const https = require('https');
+const privateKey = fs.readFileSync('./sslcert/cert.key', 'utf8');
+const certificate = fs.readFileSync('./sslcert/cert.pem', 'utf8');
+const credentials = {
+  key: privateKey,
+  cert: certificate
+};
+
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '443');
 app.set('port', port);
 
+var oldPort = normalizePort(process.env.PORT || '3000');
+
+
 /**
- * Create HTTP server.
+ * Create HTTPS server. HTTP server redirects user
  */
 
-var server = http.createServer(app);
+var server = https.createServer(credentials, app);
+// var httpServer = http.createServer(app);
+// httpServer.listen(oldPort);
+// var httpServer = http.createServer(app, function (req, res) {
+//   console.log(req.headers.host, req.url);
+//   res.redirect('https://' + req.headers.host + req.url );
+//   res.end();
+// }).listen(oldPort);
+
 
 /**
  * Listen on provided port, on all network interfaces.
