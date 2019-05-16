@@ -5,13 +5,16 @@ const router = express.Router();
 
 /* GET home page. */
 router.get("/", function (req, res, next) {
-  res.render("index", { title: "The World Database API" });
+  res.render("/", { title: "CAB230 Server Side Crime Statistics DB" });
 });
 
 router.post("/api/search", function (req, res, next) {
-  // res.render('index', { title: 'Lots of route available' });
   let token = req.headers['x-access-token'];
   let results = [];
+  let query = req.db.select("offences.area", "lat", "lng").sum(`${req.body.offence} as total`).from("offences").innerJoin("areas", "areas.area", "offences.area")
+  parameters = {
+    "offence": req.body.offence
+  };
 
   if (!token) return res.status(401).send({ auth: false, error: 'Looks like the authorization header is missing!' });
   req.jwt.verify(token, req.cf.secret, function (err, decoded) {
@@ -19,20 +22,33 @@ router.post("/api/search", function (req, res, next) {
       return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
     }
     else {
-      req.db
-        .from("offences")
-        .select("area")
-        .sum(`${req.body.offence} as total`)
-        .groupBy("area")
+      if (req.body.area) { query = query.where("area", `${req.body.area}`) };
+      if (req.body.age) {
+        query = query.where("age", `${req.body.age}`);
+        parameters = Object.assign(parameters, { "age": req.body.age });
+      };
+      if (req.body.gender) {
+        query = query.where("gender", `${req.body.gender}`);
+        parameters = Object.assign(parameters, { "gender": req.body.gender });
+      };
+      if (req.body.year) {
+        query = query.where("year", `${req.body.year}`);
+        parameters = Object.assign(parameters, { "year": req.body.year });
+      };
+      if (req.body.month) {
+        query = query.where("month", `${req.body.month}`);
+        parameters = Object.assign(parameters, { "month": req.body.month });
+      };
+      query.groupBy("area")
         .then(rows => {
+          if (rows.length === 0) { throw new Error("Parameters not correct") };
           rows.map(row => {
-            results.push({ "LGA": row.area, "total": row.total });
-            // console.log(results);
+            results.push({ "LGA": row.area, "total": row.total, "lat": row.lat, "lng": row.lng });
           })
-          res.status(200).json({ "query": req.body.offence, "results": { results } });
+          res.status(200).json({ "query": parameters, "results": { results } });
         })
         .catch(err => {
-          return res.json({ "message": "something is wrong with your parameters!" })
+          return res.status(400).json({ "message": "something is wrong with your parameters!" })
         });
     }
   })
