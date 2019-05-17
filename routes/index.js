@@ -1,14 +1,13 @@
 const express = require("express");
-const mysql = require("mysql");
 
 const router = express.Router();
 
 /* GET home page. */
 router.get("/", function (req, res, next) {
-  res.render("index", { title: "CAB230 Server Side Crime Statistics DB" });
+  next();
 });
 
-router.post("/api/search", function (req, res, next) {
+router.post("/search", function (req, res, next) {
   let token = req.headers['x-access-token'];
   let results = [];
   let query = req.db.select("offences.area", "lat", "lng").sum(`${req.body.offence} as total`).from("offences").innerJoin("areas", "areas.area", "offences.area")
@@ -55,7 +54,7 @@ router.post("/api/search", function (req, res, next) {
 
 });
 
-router.post("/api/login", function (req, res, next) {
+router.post("/login", function (req, res, next) {
   req.db
     .from("users")
     .select("password")
@@ -91,7 +90,7 @@ router.post("/api/login", function (req, res, next) {
 
 // res.status(200).send({ "token": returnToken });
 
-router.post("/api/register", function (req, res, next) {
+router.post("/register", function (req, res, next) {
   // res.render('index', { title: 'Lots of route available' });
   // body is  x-www-form-urlencoded
   let hashedPassword = req.bc.hashSync(req.body.password, 8);
@@ -113,7 +112,7 @@ router.post("/api/register", function (req, res, next) {
     });
 });
 
-router.get("/api/offences", function (req, res) {
+router.get("/offences", function (req, res) {
   req.db
     .from("offence_columns")
     .select("pretty as offence")
@@ -130,7 +129,7 @@ router.get("/api/offences", function (req, res) {
     });
 });
 
-router.get("/api/areas", function (req, res, next) {
+router.get("/areas", function (req, res, next) {
   req.db
     .from("areas")
     .select("*")
@@ -147,7 +146,7 @@ router.get("/api/areas", function (req, res, next) {
     });
 });
 
-router.get("/api/ages", function (req, res, next) {
+router.get("/ages", function (req, res, next) {
   req.db
     .from("offences")
     .select("age")
@@ -165,7 +164,7 @@ router.get("/api/ages", function (req, res, next) {
     });
 });
 
-router.get("/api/years", function (req, res, next) {
+router.get("/years", function (req, res, next) {
   req.db
     .from("offences")
     .select("year")
@@ -183,7 +182,7 @@ router.get("/api/years", function (req, res, next) {
     });
 });
 
-router.get("/api/genders", function (req, res, next) {
+router.get("/genders", function (req, res, next) {
   req.db
     .from("offences")
     .select("gender")

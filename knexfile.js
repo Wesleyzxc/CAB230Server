@@ -5,6 +5,6 @@ module.exports = {
         host: 'localhost',
         database: 'web_computing',
         user: 'root',
-        password: ''
+        password: 'password'
     }
 }

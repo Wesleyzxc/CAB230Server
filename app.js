@@ -45,9 +45,9 @@ app.use((req, res, next) => {
   next()
 })
 
-
 app.use('/', indexRouter);
-app.use('/docs', swaggerUI.serve, swaggerUI.setup(swaggerDocument))
+app.use('/', swaggerUI.serve, swaggerUI.setup(swaggerDocument))
+
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
