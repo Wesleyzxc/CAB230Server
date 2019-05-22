@@ -8,6 +8,7 @@ var jwt = require('jsonwebtoken');
 var bcrypt = require('bcryptjs');
 var config = require('./config');
 
+
 var indexRouter = require('./routes/index');
 var app = express();
 
@@ -30,13 +31,13 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+
 // logs each api request
 const accessLogStream = fs.createWriteStream(
   path.join(__dirname, 'logs', 'access.log'),
   { flags: 'a' }
 );
 app.use(logger(':remote-addr - :remote-user [:date[clf]] :method :url :status :res[content-length] - :response-time ms', { stream: accessLogStream }))
-
 app.use((req, res, next) => {
   req.db = knex;
   req.bc = bcrypt;

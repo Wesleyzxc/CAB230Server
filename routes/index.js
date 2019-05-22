@@ -2,7 +2,7 @@ const express = require("express");
 
 const router = express.Router();
 
-/* GET home page. */
+/* GET home page which passes on to swaggerUI */
 router.get("/", function (req, res, next) {
   next();
 });
@@ -10,17 +10,21 @@ router.get("/", function (req, res, next) {
 router.post("/search", function (req, res, next) {
   let token = req.headers['x-access-token'];
   let results = [];
+  // SQL: select offences.area, lat,lng, sum(offence) as total from offences join areas on areas.area = offenecs.area
   let query = req.db.select("offences.area", "lat", "lng").sum(`${req.body.offence} as total`).from("offences").innerJoin("areas", "areas.area", "offences.area")
   parameters = {
     "offence": req.body.offence
   };
 
+  // Handling header token 
   if (!token) return res.status(401).send({ auth: false, error: 'Looks like the authorization header is missing!' });
   req.jwt.verify(token, req.cf.secret, function (err, decoded) {
     if (err) {
       return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
     }
     else {
+
+      // adds where clause to sql query based on parameters
       if (req.body.area) { query = query.where("area", `${req.body.area}`) };
       if (req.body.age) {
         query = query.where("age", `${req.body.age}`);
@@ -55,147 +59,141 @@ router.post("/search", function (req, res, next) {
 });
 
 router.post("/login", function (req, res, next) {
-  req.db
-    .from("users")
-    .select("password")
-    .where({ email: req.body.email })
+  // SQL: select password from users where email = req.body.email
+  req.db.from("users").select("password").where({ email: req.body.email })
     .then(data => {
-      if (data) { return data[0].password };
-      throw new Error(data.error);
+      if (data) { return data[0].password }
+      // catch bad email
+      else { throw new Error({ message: "oh no! It looks like there was a database error while creating your user, give it another try..." }) };
     })
     .then(response => {
       let token = req.bc.compare(req.body.password, response)
         .then(response => {
-          // true
+          // token is verified
           if (response) {
             let token = req.jwt.sign({ id: req.body.email }, req.cf.secret, {
-              expiresIn: 3600 // expires in 1 hour
+              expiresIn: 86400 // expires in 24 hours
             });
             return token;
           }
-          else { throw new Error(response.error); }
+          // catch bad password
+          else { res.status(401).send({ message: "invalid login- bad password" }) };
         })
       return token;
-    }).then(result => {
+    })
+    .then(result => {
       if (result) {
-        res.status(200).send({ "token": result, "expiresIn": 86400 });
+        res.status(200).send({ "access-token": result, "token_type": "Bearer", "expiresIn": 86400 });
       }
+      // shouldn't be here
+      else { res.status(401).send({ message: "invalid login- bad password" }) }
     })
     .catch(function (err) {
-      res.status(401).send({ "message": "invalid login." });
+      if (err.message === "Cannot read property 'password' of undefined") {
+        res.status(401).send({ message: "oh no! It looks like there was a database error while creating your user, give it another try..." });
+      }
+
 
     })
 
 });
 
-// res.status(200).send({ "token": returnToken });
 
 router.post("/register", function (req, res, next) {
-  // res.render('index', { title: 'Lots of route available' });
   // body is  x-www-form-urlencoded
+  // standard hashing password before storing in database
   let hashedPassword = req.bc.hashSync(req.body.password, 8);
-  console.log(hashedPassword);
-  // let second = req.bc.hashSync("demouserpassword", 8);
-  // console.log(second);
-
-  req
-    .db("users")
-    .insert({ email: req.body.email, password: hashedPassword })
+  // SQL: insert into users values(email=req.body.email, password=hashedPassword)
+  req.db("users").insert({ email: req.body.email, password: hashedPassword })
     .then(data => {
       // console.log(data); // just the id
-      res.status(200).send({ message: "you successfully registered" });
+      res.status(200).send({
+        message: "yay! you've successfully registered your user account :)"
+      });
     })
     .catch(err => {
-      console.log("Your account already exists.");
-      res.status(400);
-      res.json({ message: "this user exists." });
+      // unable to insert due to duplicate keys
+      res.status(400).send({ message: "oops! It looks like that user already exists :(" });
     });
 });
 
 router.get("/offences", function (req, res) {
-  req.db
-    .from("offence_columns")
-    .select("pretty as offence")
+  // SQL: select pretty as offence from offence_columns
+  req.db.from("offence_columns").select("pretty as offence")
     .then(rows => {
       let reducedArray = [];
       rows.map(row => {
         reducedArray.push(row.offence);
       });
-      res.json({ Offences: reducedArray });
+      res.json({ offences: reducedArray });
     })
     .catch(err => {
-      // console.log(err);
+      // Shouldn't be here unless changes in db
       res.json({ Error: true, Message: "Error in MySQL query" });
     });
 });
 
 router.get("/areas", function (req, res, next) {
-  req.db
-    .from("areas")
-    .select("*")
+  // SQL: select area from areas
+  req.db.from("areas").select("area")
     .then(rows => {
-      res.json({
-        Error: false,
-        Message: "Success",
-        "Local Government Areas": rows
+      let reducedArray = [];
+      rows.map(row => {
+        reducedArray.push(row.area);
       });
+      res.json({ areas: reducedArray });
     })
+
     .catch(err => {
-      // console.log(err);
+      // Shouldn't be here unless changes in db
       res.json({ Error: true, Message: "Error in MySQL query" });
     });
 });
 
 router.get("/ages", function (req, res, next) {
-  req.db
-    .from("offences")
-    .select("age")
-    .distinct()
+  // SQL to reflect changes in db: select distinct age from offences 
+  req.db.from("offences").select("age").distinct()
     .then(rows => {
       let reducedArray = [];
       rows.map(row => {
         reducedArray.push(row.age);
       });
-      res.json({ Error: false, Message: "Success", Age: reducedArray });
+      res.json({ ages: reducedArray });
     })
-    .catch(er => {
-      // console.log(err);
+    .catch(err => {
+      // Shouldn't be here unless changes in db
       res.json({ Error: true, Message: "Error executing MySQL query" });
     });
 });
 
 router.get("/years", function (req, res, next) {
-  req.db
-    .from("offences")
-    .select("year")
-    .distinct()
+  // SQL to reflect changes in db: select distinct year from offences
+  req.db.from("offences").select("year").distinct()
     .then(rows => {
       let reducedArray = [];
       rows.map(row => {
         reducedArray.push(row.year);
       });
-      res.json({ Error: false, Message: "Success", Year: reducedArray });
+      res.json({ years: reducedArray });
     })
-    .catch(er => {
-      // console.log(err);
+    .catch(err => {
+      // Shouldn't be here unless changes in db
       res.json({ Error: true, Message: "Error executing MySQL query" });
     });
 });
 
 router.get("/genders", function (req, res, next) {
-  req.db
-    .from("offences")
-    .select("gender")
-    .distinct()
+  // SQL to reflect changes in db: select distinct gender from offences
+  req.db.from("offences").select("gender").distinct()
     .then(rows => {
       let reducedArray = [];
       rows.map(row => {
         reducedArray.push(row.gender);
       });
-      res.json({ Error: false, Message: "Success", Gender: reducedArray });
+      res.json({ genders: reducedArray });
     })
     .catch(er => {
-      // console.log(err);
+      // Shouldn't be here unless changes in db
       res.json({ Error: true, Message: "Error executing MySQL query" });
     });
 });
