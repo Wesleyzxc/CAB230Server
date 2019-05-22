@@ -7,7 +7,7 @@ router.get("/", function (req, res, next) {
   next();
 });
 
-router.post("/search", function (req, res, next) {
+router.get("/search", function (req, res, next) {
   let token = req.headers['x-access-token'];
   let results = [];
   // SQL: select offences.area, lat,lng, sum(offence) as total from offences join areas on areas.area = offenecs.area
