@@ -1,3 +1,4 @@
+var config = require('dotenv').config({ path: './process.env' })
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -6,7 +7,6 @@ var logger = require('morgan');
 // auth modules
 var jwt = require('jsonwebtoken');
 var bcrypt = require('bcryptjs');
-var config = require('./config');
 
 
 var indexRouter = require('./routes/index');
@@ -41,8 +41,8 @@ app.use(logger(':remote-addr - :remote-user [:date[clf]] :method :url :status :r
 app.use((req, res, next) => {
   req.db = knex;
   req.bc = bcrypt;
-  req.cf = config;
   req.jwt = jwt;
+  req.cf = config;
   next()
 })
 
