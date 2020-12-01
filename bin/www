@@ -6,12 +6,11 @@
 
 var app = require('../app');
 var debug = require('debug')('server-side:server');
-var http = require('http');
 
 const fs = require('fs');
 const https = require('https');
-const privateKey = fs.readFileSync('./sslcert/cert.key', 'utf8');
-const certificate = fs.readFileSync('./sslcert/cert.pem', 'utf8');
+const privateKey = fs.readFileSync('/etc/ssl/private/node-selfsigned.key', 'utf8');
+const certificate = fs.readFileSync('/etc/ssl/certs/node-selfsigned.crt', 'utf8');
 const credentials = {
   key: privateKey,
   cert: certificate

@@ -4,13 +4,21 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var cors = require('cors');
 // auth modules
 var jwt = require('jsonwebtoken');
 var bcrypt = require('bcryptjs');
 
 
+// Serving 3 routes
+// indexRouter with all GETs
 var indexRouter = require('./routes/index');
+// postRouter with all POSTS
+var postRouter = require('./routes/post');
+// searchRouter with auth
+var searchRouter = require('./routes/search');
 var app = express();
+
 
 const options = require('./knexfile.js');
 const knex = require('knex')(options);
@@ -19,8 +27,8 @@ const swaggerDocument = require('./docs/crimeswagger.json')
 const helmet = require('helmet');
 const fs = require('fs');
 
+app.use(cors());
 app.use(logger('common'));
-
 app.use(helmet());
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -37,7 +45,7 @@ const accessLogStream = fs.createWriteStream(
   path.join(__dirname, 'logs', 'access.log'),
   { flags: 'a' }
 );
-app.use(logger(':remote-addr - :remote-user [:date[clf]] :method :url :status :res[content-length] - :response-time ms', { stream: accessLogStream }))
+app.use(logger('combined', { stream: accessLogStream }))
 app.use((req, res, next) => {
   req.db = knex;
   req.bc = bcrypt;
@@ -47,6 +55,8 @@ app.use((req, res, next) => {
 })
 
 app.use('/', indexRouter);
+app.use('/', postRouter);
+app.use('/', searchRouter);
 app.use('/', swaggerUI.serve, swaggerUI.setup(swaggerDocument))
 
 
